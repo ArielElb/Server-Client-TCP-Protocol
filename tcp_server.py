@@ -26,14 +26,16 @@ while True:
         # open images as binary file.
         if ext == '.jpg' or ext == '.ico' or ext == '.png':
             with open(filePath, 'rb') as file:
-                l = os.path.getsize(filePath)
-                fileContent = file.read(l)
+                fileContent = file.read()
                 data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n{fileContent}'.format(
                     conn=connStatus,
                     length=os.path.getsize(filePath), fileContent=fileContent)
-                client_socket.send(fileContent)
+                print ("in binary")
+                client_socket.sendall(fileContent)
+
         else:
             with open(filePath, 'r', encoding='utf-8') as file:
+
                 fileContent = file.read()
                 data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n{fileContent}'.format(
                     conn=connStatus,
