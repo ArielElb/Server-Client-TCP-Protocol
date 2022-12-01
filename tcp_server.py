@@ -23,12 +23,12 @@ while True:
 
         for l in list:
 
-        if (l == "Connection: close"):
-            close = True
-            break
-        if (l == "Connection: keep-alive"):
-            close = False
-            break
+            if (l == "Connection: close"):
+                close = True
+                break
+            if (l == "Connection: keep-alive"):
+                close = False
+                break
 
     print('Received: ', data)
     client_socket.send(data.upper())
@@ -64,5 +64,5 @@ while True:
 
     def hasFolderPath(name):
         for l in name:
-            if (l =='/'):
+            if (l == '/'):
                 return True
