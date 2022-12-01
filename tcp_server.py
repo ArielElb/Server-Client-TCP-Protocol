@@ -29,7 +29,7 @@ def close(list):
 def getPath(fileName):
     if fileName.startswith("files"):
         return fileName
-    if fileName == '':
+    if fileName == '' or fileName == '/':
         return fileName + 'files/index.html'
     else:
         return 'files/' + fileName
@@ -37,6 +37,7 @@ def getPath(fileName):
 while True:
     client_socket, client_address = server.accept()
     print('Connection from: ', client_address)
+    client_socket.settimeout(1)
     data = client_socket.recv(1000)
     fileLines = data.decode('utf-8').splitlines(True)
     filePath = getPath(fileName(fileLines[0]))
@@ -45,6 +46,7 @@ while True:
 
     if filePath == '/redirect':
         data = 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: result.html\n\n'
+        print(data)
         client_socket.send(data.encode())
         client_socket.send(''.encode())
 
@@ -57,6 +59,7 @@ while True:
 
                 fileContent = file.read()
                 data = 'HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length: ' + str(len(fileContent)) + '\n\n'
+                print(data + str(fileContent))
                 encodeData = data.encode()
                 client_socket.send(encodeData + fileContent)
         else:
@@ -65,11 +68,13 @@ while True:
                 data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n {fileContent}'.format(
                     conn=connStatus,
                     length=os.path.getsize(filePath), fileContent=fileContent)
+                print(data)
                 client_socket.send(data.encode('utf-8'))
     # file isn't found - send 404 error.
     else:
         data = 'HTTP/1.1 404 Not Found\nConnection: {conn}\n\n'.format(
             conn="close")
+        print(data)
         client_socket.send(data.encode())
         client_socket.send(''.encode())
 
