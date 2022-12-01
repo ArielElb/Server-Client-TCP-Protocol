@@ -15,8 +15,8 @@ server.listen(5)
 def fileName(line):
     names = line.split(' ')
     name = names[1]
-    return name
-
+    fileName = name[1:]
+    return fileName
 
 def close(list):
     for l in list:
@@ -48,20 +48,21 @@ while True:
         # open images as binary file.
         if ext == '.jpg' or ext == '.ico' or ext == '.png':
             with open(filePath, 'rb') as file:
-                fileContent = file.read()
-                data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n{fileContent}'.format(
-                    conn=connStatus.encode(),
-                    length=os.path.getsize(filePath.encode()), fileContent=fileContent)
-                print("in binary")
-                client_socket.send(fileContent)
 
+                fileContent = file.read()
+                data = 'HTTP/1.1 200 OK\nContent-Type: image/jpeg\nContent-Length: ' + str(len(fileContent)) + '\n\n'
+                encodeData = data.encode()
+                client_socket.send(encodeData + fileContent)
         else:
             with open(filePath, 'r', encoding='utf-8') as file:
                 fileContent = file.read()
-                data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n{fileContent}'.format(
-                    conn=connStatus,
-                    length=os.path.getsize(filePath), fileContent=fileContent)
-                client_socket.send(data.encode('utf-8'))
+                temp = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length} \n\n'.format(conn = connStatus, length = os.path.getsize(filePath))
+                data = temp.encode('utf-8') + fileContent.encode('utf-8')
+                finalData = data.encode('utf-8')
+                # data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n{fileContent}'.format(
+                #     conn=connStatus,
+                #     length=os.path.getsize(filePath), fileContent=fileContent)
+                client_socket.send(finalData)
     # file isn't found - send 404 error.
     else:
         data = 'HTTP/1.1 404 Not Found\nConnection: {conn}\n\n'.format(
