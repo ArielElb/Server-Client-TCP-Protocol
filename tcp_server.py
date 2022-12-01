@@ -32,7 +32,6 @@ while True:
                     conn=connStatus,
                     length=os.path.getsize(filePath), fileContent=fileContent)
                 client_socket.send(fileContent)
-                continue
         else:
             with open(filePath, 'r', encoding='utf-8') as file:
                 fileContent = file.read()
