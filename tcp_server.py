@@ -8,31 +8,73 @@ from os import path
 def fileName(line):
     names = line.split(' ')
     name = names[1]
-    fileName = name[1:]
-    return fileName
+    fName = name[1:]
+    return fName
 
 
-def close(list):
-    for l in list:
-        if l == 'Connection: close':
-            return "close"
-        if l == "Connection: keep-alive":
-            return "keep-alive"
+def check_conn_status(list):
+    if 'Connection: close' in list:
+        return 'close'
+    if 'Connection: keep-alive' in list:
+        return 'keep-alive'
 
 
-def getPath(fileName):
-    if fileName.startswith("files"):
-        return fileName
-    if fileName == '' or fileName == '/':
-        return fileName + 'files/index.html'
+def getPath(fName):
+    if fName.startswith("files"):
+        return fName
+    if fName == '' or fName == '/':
+        return fName + 'files/index.html'
     else:
-        return 'files/' + fileName
+        return 'files/' + fName
 
 
-def runServer():
+def redirect(client_socket):
+    data = 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\r\n\r\n'
+    client_socket.send(data.encode())
+    print(data)
+    return 'close'
+
+
+def send_img(client_socket, filePath, connStatus):
+    with open(filePath, 'rb') as file:
+        fileContent = file.read()
+        data = f'HTTP/1.1 200 OK\nConnection:{connStatus} \nContent-Length: ' + str(
+            len(fileContent)) + '\n\n'
+        print(data)
+        print(fileContent)
+        print('\n')
+        encodeData = data.encode()
+        client_socket.send(encodeData + fileContent)
+
+
+def send_default_data(client_socket, filePath, connStatus):
+    with open(filePath, 'r', encoding='utf-8') as file:
+        fileContent = file.read()
+        data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n {fileContent}'.format(
+            conn=connStatus,
+            length=os.path.getsize(filePath), fileContent=fileContent)
+        print(data)
+        client_socket.send(data.encode('utf-8'))
+
+
+def error_404(client_socket, connStatus):
+    data = 'HTTP/1.1 404 Not Found\nConnection: {conn}\r\n\r\n'.format(
+        conn="close")
+    print(data)
+    connStatus = 'close'
+    client_socket.send(data.encode())
+    return connStatus
+
+
+def run_server():
+    client_socket = None
+    # Create a TCP/IP socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Bind the socket to the port
     server.bind((sys.argv[1], 8080))
+    # Listen for incoming connections
     server.listen(5)
+
     while True:
         try:
             client_socket, client_address = server.accept()
@@ -44,53 +86,32 @@ def runServer():
             fileLines = data.decode('utf-8').splitlines()
             filePath = getPath(fileName(fileLines[0]))
             ext = os.path.splitext(filePath)[-1].lower()
-            connStatus = close(fileLines)
+            connStatus = check_conn_status(fileLines)
+
+            if filePath == 'files/redirect':
+                connStatus = redirect(client_socket)
+            elif path.exists(filePath):
+                # open images as binary file.
+                if ext == '.jpg' or ext == '.ico' or ext == '.png':
+                    send_img(client_socket, filePath, connStatus)
+                else:
+                    send_default_data(client_socket, filePath, connStatus)
+            # file isn't found - send 404 error.
+            else:
+                connStatus = error_404(client_socket, connStatus)
+
+            if connStatus == "close":
+                client_socket.close()
+                print("closed")
+                continue
         except:
             print('Connection closed : timeout')
             client_socket.close()
             continue
-        if filePath == 'files/redirect':
-            data = 'HTTP/1.1 301 Moved Permanently\nConnection: close\nLocation: /result.html\n\n' + ''
-            connStatus = 'close'
-            client_socket.send(data.encode())
-            print(data)
-        elif path.exists(filePath):
-            # open images as binary file.
-            if ext == '.jpg' or ext == '.ico' or ext == '.png':
-                with open(filePath, 'rb') as file:
-                    fileContent = file.read()
-                    data = f'HTTP/1.1 200 OK\nConnection:{connStatus} \nContent-Length: ' + str(len(fileContent)) + '\n\n'
-                    print(data)
-                    print(fileContent )
-                    print('\n')
-                    encodeData = data.encode()
-                    client_socket.send(encodeData + fileContent)
-            else:
-                with open(filePath, 'r', encoding='utf-8') as file:
-                    fileContent = file.read()
-                    data = 'HTTP/1.1 200 OK\nConnection: {conn}\nContent-Length:{length}\n\n {fileContent}'.format(
-                        conn=connStatus,
-                        length=os.path.getsize(filePath), fileContent=fileContent)
-                    print(data)
-                    client_socket.send(data.encode('utf-8'))
-        # file isn't found - send 404 error.
-        else:
-            data = 'HTTP/1.1 404 Not Found\nConnection: {conn}\n\n'.format(
-                conn="close")
-            print(data)
-            connStatus = 'close'
-            client_socket.send(data.encode())
-            client_socket.send(''.encode())
-
-
-        if connStatus == "close":
-            client_socket.close()
-            continue
-
 
 
 def main():
-    runServer()
+    run_server()
 
 
 if __name__ == "__main__":
