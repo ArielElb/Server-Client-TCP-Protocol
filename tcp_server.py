@@ -72,7 +72,7 @@ def run_server():
     # Create a TCP/IP socket
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     # Bind the socket to the port
-    server.bind((sys.argv[1], 8080))
+    server.bind(('', int(sys.argv[1])))
     # Listen for incoming connections
     server.listen(5)
 
